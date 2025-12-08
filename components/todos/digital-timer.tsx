@@ -1,15 +1,16 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { Clock } from "lucide-react"
+import { Clock, Trash2 } from "lucide-react"
 
 interface DigitalTimerProps {
   initialSeconds: number
   label?: string
   onComplete?: () => void
+  onDelete?: () => void
 }
 
-export function DigitalTimer({ initialSeconds, label, onComplete }: DigitalTimerProps) {
+export function DigitalTimer({ initialSeconds, label, onComplete, onDelete }: DigitalTimerProps) {
   const [secondsLeft, setSecondsLeft] = useState(initialSeconds)
   const [isRunning, setIsRunning] = useState(true)
   const [isComplete, setIsComplete] = useState(false)
@@ -67,6 +68,11 @@ export function DigitalTimer({ initialSeconds, label, onComplete }: DigitalTimer
     <div className="digital-timer-wrapper" contentEditable={false}>
       <div className={`digital-timer-container ${isComplete ? "timer-complete" : ""}`}>
         <div className="digital-timer-frame">
+          {onDelete && (
+            <button onClick={onDelete} className="timer-delete-btn" title="Delete timer">
+              <Trash2 size={14} />
+            </button>
+          )}
           <div className="digital-timer-screen">
             <div className={`digital-timer-display ${hasHours ? "has-hours" : ""}`}>
               {display.split("").map((char, i) => (

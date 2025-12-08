@@ -3,10 +3,20 @@ import { ReactNodeViewRenderer, NodeViewWrapper } from "@tiptap/react"
 import { DigitalTimer, parseTimerInput } from "@/components/todos/digital-timer"
 import { StickyNote, parseStickyNoteInput } from "@/components/todos/sticky-note"
 
-const TimerNodeView = ({ node }: { node: { attrs: { seconds: number; label: string } } }) => {
+const TimerNodeView = ({ 
+  node, 
+  deleteNode 
+}: { 
+  node: { attrs: { seconds: number; label: string } }
+  deleteNode: () => void 
+}) => {
   return (
     <NodeViewWrapper>
-      <DigitalTimer initialSeconds={node.attrs.seconds} label={node.attrs.label} />
+      <DigitalTimer 
+        initialSeconds={node.attrs.seconds} 
+        label={node.attrs.label} 
+        onDelete={deleteNode}
+      />
     </NodeViewWrapper>
   )
 }
@@ -40,9 +50,11 @@ export const TimerNode = Node.create({
 const StickyNoteNodeView = ({
   node,
   updateAttributes,
+  deleteNode,
 }: {
   node: { attrs: { content: string; color: string; title: string } }
   updateAttributes: (attrs: { content: string }) => void
+  deleteNode: () => void
 }) => {
   return (
     <NodeViewWrapper>
@@ -51,6 +63,7 @@ const StickyNoteNodeView = ({
         color={node.attrs.color as "yellow" | "pink" | "blue" | "green" | "purple"}
         title={node.attrs.title}
         onChange={(content) => updateAttributes({ content })}
+        onDelete={deleteNode}
       />
     </NodeViewWrapper>
   )

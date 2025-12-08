@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { TodoEditor } from "@/components/todos/todo-editor"
 import { DatePicker } from "@/components/todos/date-picker"
+import { HelpDialog } from "@/components/help-dialog"
 import { useTodosStore } from "@/store/todos"
 
 export default function TodosPage() {
@@ -19,7 +20,8 @@ export default function TodosPage() {
       <div className="flex-1 flex w-full max-w-4xl mx-auto">
         <TodoEditor />
       </div>
-        <DatePicker />
+      <DatePicker />
+      <HelpDialog />
     </div>
   )
 }

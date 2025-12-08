@@ -14,6 +14,7 @@ import { format, isToday, parseISO, addDays, subDays } from "date-fns"
 import { useTodosStore } from "@/store/todos"
 import { cn } from "@/lib/utils"
 import { TimerNode, StickyNoteNode, parseTimerInput, parseStickyNoteInput } from "@/lib/tiptap-extensions"
+import { Timer, StickyNote as StickyNoteIcon, ChevronLeft, ChevronRight } from "lucide-react"
 
 const TodoExtension = Extension.create({
   name: "todoExtension",
@@ -31,40 +32,6 @@ const TodoExtension = Extension.create({
           chain().deleteRange(range).toggleTaskList().run()
         },
       }),
-      new InputRule({
-        find: /^>\s*\d+\s*(?:hours?|hrs?|minutes?|mins?|seconds?|secs?)\s*timer\s*$/i,
-        handler: ({ range, match, chain }) => {
-          const timerData = parseTimerInput(match[0])
-          if (timerData) {
-            chain()
-              .deleteRange(range)
-              .insertContent({
-                type: "timerNode",
-                attrs: { seconds: timerData.seconds, label: timerData.label },
-              })
-              .run()
-          }
-        },
-      }),
-      new InputRule({
-        find: /^>\s*(?:sticky|note)(?:\s*:\s*|\s+).+\s*$/i,
-        handler: ({ range, match, chain }) => {
-          const stickyData = parseStickyNoteInput(match[0])
-          if (stickyData) {
-            chain()
-              .deleteRange(range)
-              .insertContent({
-                type: "stickyNoteNode",
-                attrs: { 
-                  content: stickyData.content, 
-                  color: stickyData.color || "yellow",
-                  title: stickyData.title || "",
-                },
-              })
-              .run()
-          }
-        },
-      }),
     ]
   },
   addKeyboardShortcuts() {
@@ -79,6 +46,42 @@ const TodoExtension = Extension.create({
         if (this.editor.isActive("taskItem")) {
           return this.editor.chain().focus().liftListItem("taskItem").run()
         }
+        return false
+      },
+      Enter: () => {
+        const { state } = this.editor
+        const { $from } = state.selection
+        const lineStart = $from.start()
+        const lineText = state.doc.textBetween(lineStart, $from.pos, "\n")
+        
+        const timerData = parseTimerInput(lineText)
+        if (timerData) {
+          this.editor.chain()
+            .deleteRange({ from: lineStart, to: $from.pos })
+            .insertContent({
+              type: "timerNode",
+              attrs: { seconds: timerData.seconds, label: timerData.label },
+            })
+            .run()
+          return true
+        }
+
+        const stickyData = parseStickyNoteInput(lineText)
+        if (stickyData) {
+          this.editor.chain()
+            .deleteRange({ from: lineStart, to: $from.pos })
+            .insertContent({
+              type: "stickyNoteNode",
+              attrs: { 
+                content: stickyData.content, 
+                color: stickyData.color || "yellow",
+                title: stickyData.title || "",
+              },
+            })
+            .run()
+          return true
+        }
+
         return false
       },
     }
@@ -101,6 +104,7 @@ export function TodoEditor({ className }: TodoEditorProps) {
   const lastSavedContent = useRef<string>("")
   const isLoadingContent = useRef(false)
   const [activeFilter, setActiveFilter] = useState<"todos" | "links" | null>(null)
+  const [showMobileActions, setShowMobileActions] = useState(false)
 
   const hasTodos = useMemo(() => {
     if (!currentTodo?.content) return false
@@ -226,6 +230,26 @@ export function TodoEditor({ className }: TodoEditorProps) {
     immediatelyRender: false,
   })
 
+  const addTimer = (minutes: number) => {
+    const seconds = minutes * 60
+    const label = minutes >= 60 
+      ? `${Math.floor(minutes / 60)} hour${Math.floor(minutes / 60) > 1 ? "s" : ""}` 
+      : `${minutes} min${minutes > 1 ? "s" : ""}`
+    editor?.chain().focus().insertContent({
+      type: "timerNode",
+      attrs: { seconds, label },
+    }).run()
+    setShowMobileActions(false)
+  }
+
+  const addStickyNote = (color: string = "yellow") => {
+    editor?.chain().focus().insertContent({
+      type: "stickyNoteNode",
+      attrs: { content: "", color, title: "" },
+    }).run()
+    setShowMobileActions(false)
+  }
+
   useEffect(() => {
     fetchTodo(selectedDate)
   }, [selectedDate, fetchTodo])
@@ -281,9 +305,29 @@ export function TodoEditor({ className }: TodoEditorProps) {
   const displayDate = parseISO(selectedDate)
   const isTodayDate = isToday(displayDate)
 
+  const goToPrevDay = () => setSelectedDate(format(subDays(parseISO(selectedDate), 1), "yyyy-MM-dd"))
+  const goToNextDay = () => setSelectedDate(format(addDays(parseISO(selectedDate), 1), "yyyy-MM-dd"))
+
   return (
-    <div className={cn("flex flex-1 h-full overflow-y-auto scrollbar-hidden", className)}>
-      <div className="w-40 shrink-0 pr-6 text-right">
+    <div className={cn("flex flex-col md:flex-row flex-1 h-full overflow-y-auto scrollbar-hidden", className)}>
+      {/* Mobile Header */}
+      <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-[#2f2927] sticky top-0 bg-[#1D1715] z-10">
+        <button onClick={goToPrevDay} className="p-2 text-[#888] hover:text-white cursor-pointer">
+          <ChevronLeft size={20} />
+        </button>
+        <div className="text-center">
+          <div className="text-[#e8e8e8] text-sm font-medium">
+            {format(displayDate, "MMM d, yyyy")}
+          </div>
+          {isTodayDate && <div className="text-[#767676] text-xs">Today</div>}
+        </div>
+        <button onClick={goToNextDay} className="p-2 text-[#888] hover:text-white cursor-pointer">
+          <ChevronRight size={20} />
+        </button>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block w-40 shrink-0 pr-6 text-right">
         <div className="sticky top-0.5 pt-12">
           <div className="text-[#534E4C] text-sm">
             {format(displayDate, "MMM d, yyyy")}
@@ -324,10 +368,43 @@ export function TodoEditor({ className }: TodoEditorProps) {
         </div>
       </div>
 
-      <div className="flex-1 pt-12 pb-8 min-h-0 scrollbar-hidden max-w-5xl mr-auto">
+      {/* Main Content */}
+      <div className="flex-1 pt-4 md:pt-12 pb-24 md:pb-8 px-4 md:px-0 min-h-0 scrollbar-hidden max-w-5xl mr-auto">
+        {/* Mobile Filters */}
+        {(hasTodos || hasLinks) && (
+          <div className="md:hidden flex items-center gap-2 mb-4">
+            {hasTodos && (
+              <button
+                onClick={() => setActiveFilter(activeFilter === "todos" ? null : "todos")}
+                className={cn(
+                  "h-7 px-3 rounded-full text-xs border transition-colors cursor-pointer",
+                  activeFilter === "todos"
+                    ? "bg-[#2c2624] border-[#3a3432] text-[#e8e8e8]"
+                    : "border-[#2c2624] text-[#777] hover:text-[#cfcfcf] hover:border-[#3a3432]"
+                )}
+              >
+                Todos
+              </button>
+            )}
+            {hasLinks && (
+              <button
+                onClick={() => setActiveFilter(activeFilter === "links" ? null : "links")}
+                className={cn(
+                  "h-7 px-3 rounded-full text-xs border transition-colors cursor-pointer",
+                  activeFilter === "links"
+                    ? "bg-[#2c2624] border-[#3a3432] text-[#e8e8e8]"
+                    : "border-[#2c2624] text-[#777] hover:text-[#cfcfcf] hover:border-[#3a3432]"
+                )}
+              >
+                Links
+              </button>
+            )}
+          </div>
+        )}
+
         {activeFilter === "links" ? (
           <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
               {collectedLinks.map((link) => (
                 <a
                   key={link.url}
@@ -369,6 +446,70 @@ export function TodoEditor({ className }: TodoEditorProps) {
             editor={editor}
             className={cn("h-full scrollbar-hidden pb-20", activeFilter === "todos" && "filter-todos-only")}
           />
+        )}
+      </div>
+
+      {/* Mobile Action Buttons */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#1D1715] border-t border-[#2f2927] p-3 z-20">
+        {showMobileActions ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#888]">Add Timer</span>
+              <div className="flex gap-2">
+                {[5, 10, 15, 25, 60].map((mins) => (
+                  <button
+                    key={mins}
+                    onClick={() => addTimer(mins)}
+                    className="px-3 py-1.5 rounded-lg bg-[#2a2422] border border-[#3a3432] text-xs text-[#e8e8e8] hover:bg-[#3a3432] cursor-pointer"
+                  >
+                    {mins >= 60 ? `${mins / 60}h` : `${mins}m`}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[#888]">Add Note</span>
+              <div className="flex gap-2">
+                {(["yellow", "pink", "blue", "green", "purple"] as const).map((color) => (
+                  <button
+                    key={color}
+                    onClick={() => addStickyNote(color)}
+                    className="w-7 h-7 rounded-lg border border-[#3a3432] cursor-pointer"
+                    style={{
+                      background: color === "yellow" ? "#facc15" 
+                        : color === "pink" ? "#f472b6"
+                        : color === "blue" ? "#60a5fa"
+                        : color === "green" ? "#4ade80"
+                        : "#c084fc"
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={() => setShowMobileActions(false)}
+              className="w-full py-2 text-xs text-[#888] hover:text-white cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowMobileActions(true)}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#2a2422] border border-[#3a3432] text-sm text-[#e8e8e8] hover:bg-[#3a3432] cursor-pointer"
+            >
+              <Timer size={16} />
+              Timer
+            </button>
+            <button
+              onClick={() => setShowMobileActions(true)}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#2a2422] border border-[#3a3432] text-sm text-[#e8e8e8] hover:bg-[#3a3432] cursor-pointer"
+            >
+              <StickyNoteIcon size={16} />
+              Note
+            </button>
+          </div>
         )}
       </div>
 
@@ -442,7 +583,13 @@ export function TodoEditor({ className }: TodoEditorProps) {
         }
         
         .todo-list .todo-list {
-          margin-left: 2rem;
+          margin-left: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+          .todo-list .todo-list {
+            margin-left: 2rem;
+          }
         }
 
         .ProseMirror a {
@@ -466,8 +613,302 @@ export function TodoEditor({ className }: TodoEditorProps) {
         .filter-todos-only .ProseMirror > *:not(ul.todo-list):not(ol.todo-list) {
           display: none;
         }
+
+        /* Digital Timer Styles */
+        .digital-timer-wrapper {
+          margin: 1.5rem 0;
+          user-select: none;
+        }
+
+        .digital-timer-container {
+          display: inline-flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .digital-timer-frame {
+          position: relative;
+          background: linear-gradient(145deg, #e8e8e8, #f5f5f5);
+          padding: 12px;
+          border-radius: 20px;
+          box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.3),
+            inset 0 2px 0 rgba(255, 255, 255, 0.8),
+            inset 0 -2px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .timer-delete-btn {
+          position: absolute;
+          top: -8px;
+          right: -8px;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: #ef4444;
+          border: 2px solid #1D1715;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity 0.2s;
+          z-index: 10;
+        }
+
+        .digital-timer-wrapper:hover .timer-delete-btn {
+          opacity: 1;
+        }
+
+        .digital-timer-screen {
+          background: linear-gradient(180deg, #c8d0c8 0%, #b8c0b8 100%);
+          padding: 16px 20px;
+          border-radius: 12px;
+          box-shadow: 
+            inset 0 4px 8px rgba(0, 0, 0, 0.15),
+            inset 0 -2px 4px rgba(255, 255, 255, 0.3);
+        }
+
+        @media (min-width: 768px) {
+          .digital-timer-screen {
+            padding: 20px 28px;
+          }
+        }
+
+        .digital-timer-display {
+          font-family: 'Orbitron', 'Courier New', monospace;
+          font-size: 2.5rem;
+          font-weight: 700;
+          color: #1a2a1a;
+          letter-spacing: 2px;
+          text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+          display: flex;
+          align-items: center;
+        }
+
+        @media (min-width: 768px) {
+          .digital-timer-display {
+            font-size: 3.5rem;
+          }
+        }
+
+        .digital-timer-display.has-hours {
+          font-size: 1.75rem;
+        }
+
+        @media (min-width: 768px) {
+          .digital-timer-display.has-hours {
+            font-size: 2.5rem;
+          }
+        }
+
+        .timer-digit {
+          display: inline-block;
+          min-width: 0.65em;
+          text-align: center;
+        }
+
+        .timer-colon {
+          display: inline-block;
+          min-width: 0.3em;
+          text-align: center;
+          animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+          0%, 50% { opacity: 1; }
+          51%, 100% { opacity: 0.3; }
+        }
+
+        .timer-complete .timer-colon {
+          animation: none;
+          opacity: 1;
+        }
+
+        .timer-complete .digital-timer-screen {
+          background: linear-gradient(180deg, #a8d8a8 0%, #90c890 100%);
+        }
+
+        .digital-timer-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          color: #888;
+          font-size: 0.875rem;
+        }
+
+        .digital-timer-controls {
+          display: flex;
+          gap: 8px;
+        }
+
+        .timer-btn {
+          padding: 6px 16px;
+          border-radius: 8px;
+          font-size: 0.75rem;
+          font-weight: 500;
+          background: #2a2422;
+          color: #e8e8e8;
+          border: 1px solid #3a3432;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+
+        .timer-btn:hover {
+          background: #3a3432;
+          border-color: #4a4442;
+        }
+
+        .timer-btn-reset {
+          background: transparent;
+          border-color: #3a3432;
+          color: #888;
+        }
+
+        .timer-btn-reset:hover {
+          background: #2a2422;
+          color: #e8e8e8;
+        }
+
+        /* Sticky Note Styles */
+        .sticky-note-wrapper {
+          margin: 1rem 0;
+          display: inline-block;
+          user-select: none;
+        }
+
+        @media (min-width: 768px) {
+          .sticky-note-wrapper {
+            margin: 1.5rem 0;
+          }
+        }
+
+        .sticky-note-draggable {
+          position: absolute;
+        }
+
+        .sticky-note {
+          position: relative;
+          width: 180px;
+          min-height: 150px;
+          padding: 20px 12px 12px;
+          transform: rotate(-1deg);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        @media (min-width: 768px) {
+          .sticky-note {
+            width: 220px;
+            min-height: 180px;
+            padding: 24px 16px 16px;
+          }
+        }
+
+        .sticky-note:hover {
+          transform: rotate(0deg) scale(1.02);
+        }
+
+        .sticky-note-delete {
+          position: absolute;
+          top: 4px;
+          right: 4px;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          background: rgba(0, 0, 0, 0.2);
+          border: none;
+          color: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          opacity: 0;
+          transition: opacity 0.2s, background 0.2s;
+          z-index: 10;
+        }
+
+        .sticky-note:hover .sticky-note-delete {
+          opacity: 1;
+        }
+
+        .sticky-note-delete:hover {
+          background: rgba(239, 68, 68, 0.8);
+          color: white;
+        }
+
+        .sticky-note-tape {
+          position: absolute;
+          top: -8px;
+          left: 50%;
+          transform: translateX(-50%) rotate(2deg);
+          width: 50px;
+          height: 20px;
+          opacity: 0.8;
+          border-radius: 2px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        @media (min-width: 768px) {
+          .sticky-note-tape {
+            width: 60px;
+            height: 24px;
+          }
+        }
+
+        .sticky-note-content {
+          position: relative;
+          z-index: 1;
+        }
+
+        .sticky-note-textarea {
+          width: 100%;
+          min-height: 110px;
+          background: transparent;
+          border: none;
+          outline: none;
+          resize: none;
+          font-family: 'Caveat', cursive;
+          font-size: 1.1rem;
+          font-weight: 500;
+          line-height: 1.5;
+        }
+
+        @media (min-width: 768px) {
+          .sticky-note-textarea {
+            min-height: 140px;
+            font-size: 1.25rem;
+          }
+        }
+
+        .sticky-note-textarea::placeholder {
+          opacity: 0.5;
+        }
+
+        .sticky-note-fold {
+          position: absolute;
+          bottom: 0;
+          right: 0;
+          width: 0;
+          height: 0;
+          border-style: solid;
+          border-width: 0 0 16px 16px;
+          border-color: transparent transparent rgba(0, 0, 0, 0.1) transparent;
+        }
+
+        @media (min-width: 768px) {
+          .sticky-note-fold {
+            border-width: 0 0 20px 20px;
+          }
+        }
+
+        .sticky-note-title {
+          text-align: center;
+          color: #888;
+          font-size: 0.75rem;
+          margin-top: 8px;
+        }
       `}</style>
     </div>
   )
 }
-

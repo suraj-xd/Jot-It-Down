@@ -1,12 +1,17 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { Trash2 } from "lucide-react"
 
 interface StickyNoteProps {
   content: string
   title?: string
   color?: "yellow" | "pink" | "blue" | "green" | "purple"
   onChange?: (content: string) => void
+  onDelete?: () => void
+  draggable?: boolean
+  position?: { x: number; y: number }
+  onPositionChange?: (pos: { x: number; y: number }) => void
 }
 
 const colorMap = {
@@ -42,9 +47,21 @@ const colorMap = {
   },
 }
 
-export function StickyNote({ content, title, color = "yellow", onChange }: StickyNoteProps) {
+export function StickyNote({ 
+  content, 
+  title, 
+  color = "yellow", 
+  onChange, 
+  onDelete,
+  draggable = false,
+  position,
+  onPositionChange,
+}: StickyNoteProps) {
   const [text, setText] = useState(content)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const noteRef = useRef<HTMLDivElement>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const dragOffset = useRef({ x: 0, y: 0 })
   const colors = colorMap[color]
 
   useEffect(() => {
@@ -57,16 +74,67 @@ export function StickyNote({ content, title, color = "yellow", onChange }: Stick
     onChange?.(newText)
   }
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!draggable || !noteRef.current) return
+    if ((e.target as HTMLElement).tagName === "TEXTAREA") return
+    if ((e.target as HTMLElement).closest("button")) return
+    
+    setIsDragging(true)
+    const rect = noteRef.current.getBoundingClientRect()
+    dragOffset.current = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    }
+  }
+
+  useEffect(() => {
+    if (!isDragging) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!noteRef.current?.parentElement) return
+      const parent = noteRef.current.parentElement.getBoundingClientRect()
+      const x = Math.max(0, Math.min(e.clientX - parent.left - dragOffset.current.x, parent.width - 200))
+      const y = Math.max(0, Math.min(e.clientY - parent.top - dragOffset.current.y, parent.height - 200))
+      onPositionChange?.({ x, y })
+    }
+
+    const handleMouseUp = () => {
+      setIsDragging(false)
+    }
+
+    window.addEventListener("mousemove", handleMouseMove)
+    window.addEventListener("mouseup", handleMouseUp)
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove)
+      window.removeEventListener("mouseup", handleMouseUp)
+    }
+  }, [isDragging, onPositionChange])
+
+  const style: React.CSSProperties = {
+    background: colors.bg,
+    boxShadow: `4px 4px 15px ${colors.shadow}, 0 0 0 1px rgba(0,0,0,0.05)`,
+    ...(draggable && position ? {
+      position: "absolute",
+      left: position.x,
+      top: position.y,
+      cursor: isDragging ? "grabbing" : "grab",
+    } : {}),
+  }
+
   return (
-    <div className="sticky-note-wrapper" contentEditable={false}>
-      <div
-        className="sticky-note"
-        style={{
-          background: colors.bg,
-          boxShadow: `4px 4px 15px ${colors.shadow}, 0 0 0 1px rgba(0,0,0,0.05)`,
-        }}
-      >
+    <div 
+      ref={noteRef}
+      className={`sticky-note-wrapper ${draggable ? "sticky-note-draggable" : ""}`} 
+      contentEditable={false}
+      onMouseDown={handleMouseDown}
+    >
+      <div className="sticky-note" style={style}>
         <div className="sticky-note-tape" style={{ background: colors.tape }} />
+        {onDelete && (
+          <button onClick={onDelete} className="sticky-note-delete" title="Delete note">
+            <Trash2 size={14} />
+          </button>
+        )}
         <div className="sticky-note-content">
           <textarea
             ref={textareaRef}

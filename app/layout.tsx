@@ -16,6 +16,18 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Jot It Down",
   description: "Jot down your thoughts and ideas",
+  openGraph: {
+    title: "Jot It Down",
+    description: "Jot down your thoughts and ideas",
+    type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
