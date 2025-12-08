@@ -1,20 +1,17 @@
 import { Node, mergeAttributes } from "@tiptap/core"
-import { ReactNodeViewRenderer, NodeViewWrapper } from "@tiptap/react"
+import { ReactNodeViewRenderer, NodeViewWrapper, ReactNodeViewProps } from "@tiptap/react"
 import { DigitalTimer, parseTimerInput } from "@/components/todos/digital-timer"
 import { StickyNote, parseStickyNoteInput } from "@/components/todos/sticky-note"
 
 const TimerNodeView = ({ 
   node, 
   deleteNode 
-}: { 
-  node: { attrs: { seconds: number; label: string } }
-  deleteNode: () => void 
-}) => {
+}: ReactNodeViewProps) => {
   return (
     <NodeViewWrapper>
       <DigitalTimer 
-        initialSeconds={node.attrs.seconds} 
-        label={node.attrs.label} 
+        initialSeconds={node.attrs.seconds as number} 
+        label={node.attrs.label as string} 
         onDelete={deleteNode}
       />
     </NodeViewWrapper>
@@ -51,17 +48,13 @@ const StickyNoteNodeView = ({
   node,
   updateAttributes,
   deleteNode,
-}: {
-  node: { attrs: { content: string; color: string; title: string } }
-  updateAttributes: (attrs: { content: string }) => void
-  deleteNode: () => void
-}) => {
+}: ReactNodeViewProps) => {
   return (
     <NodeViewWrapper>
       <StickyNote
-        content={node.attrs.content}
+        content={node.attrs.content as string}
         color={node.attrs.color as "yellow" | "pink" | "blue" | "green" | "purple"}
-        title={node.attrs.title}
+        title={node.attrs.title as string}
         onChange={(content) => updateAttributes({ content })}
         onDelete={deleteNode}
       />
