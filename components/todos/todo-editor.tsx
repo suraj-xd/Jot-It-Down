@@ -11,10 +11,12 @@ import Link from "@tiptap/extension-link"
 import { Extension } from "@tiptap/core"
 import { InputRule } from "@tiptap/core"
 import { format, isToday, parseISO, addDays, subDays } from "date-fns"
+import { motion, AnimatePresence } from "motion/react"
 import { useTodosStore } from "@/store/todos"
 import { cn } from "@/lib/utils"
 import { TimerNode, StickyNoteNode, parseTimerInput, parseStickyNoteInput } from "@/lib/tiptap-extensions"
 import { Timer, StickyNote as StickyNoteIcon, ChevronLeft, ChevronRight } from "lucide-react"
+import { fadeSlideUp, transition, listItem, staggerContainer } from "@/lib/motion"
 
 const TodoExtension = Extension.create({
   name: "todoExtension",
@@ -309,36 +311,113 @@ export function TodoEditor({ className }: TodoEditorProps) {
   const goToNextDay = () => setSelectedDate(format(addDays(parseISO(selectedDate), 1), "yyyy-MM-dd"))
 
   return (
-    <div className={cn("flex flex-col md:flex-row flex-1 h-full overflow-y-auto scrollbar-hidden", className)}>
+    <div className={cn("flex flex-col md:flex-row flex-1 h-full", className)}>
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-[#2f2927] sticky top-0 bg-[#1D1715] z-10">
-        <button onClick={goToPrevDay} className="p-2 text-[#888] hover:text-white cursor-pointer">
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={goToPrevDay}
+          className="p-2 text-[#888] hover:text-white cursor-pointer transition-colors"
+        >
           <ChevronLeft size={20} />
-        </button>
-        <div className="text-center">
+        </motion.button>
+        <motion.div
+          key={selectedDate}
+          initial={{ opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={transition}
+          className="text-center"
+        >
           <div className="text-[#e8e8e8] text-sm font-medium">
             {format(displayDate, "MMM d, yyyy")}
           </div>
           {isTodayDate && <div className="text-[#767676] text-xs">Today</div>}
-        </div>
-        <button onClick={goToNextDay} className="p-2 text-[#888] hover:text-white cursor-pointer">
+        </motion.div>
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={goToNextDay}
+          className="p-2 text-[#888] hover:text-white cursor-pointer transition-colors"
+        >
           <ChevronRight size={20} />
-        </button>
+        </motion.button>
       </div>
 
       {/* Desktop Sidebar */}
       <div className="hidden md:block w-40 shrink-0 pr-6 text-right">
         <div className="sticky top-0.5 pt-12">
-          <div className="text-[#534E4C] text-sm">
-            {format(displayDate, "MMM d, yyyy")}
-          </div>
-          {isTodayDate && (
-            <div className="text-[#767676] text-xs mt-0.5">Today</div>
-          )}
+          <motion.div
+            key={selectedDate}
+            initial={{ opacity: 0, x: -4 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={transition}
+          >
+            <div className="text-[#534E4C] text-sm">
+              {format(displayDate, "MMM d, yyyy")}
+            </div>
+            {isTodayDate && (
+              <div className="text-[#767676] text-xs mt-0.5">Today</div>
+            )}
+          </motion.div>
+          <AnimatePresence>
+            {(hasTodos || hasLinks) && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={transition}
+                className="mt-3 flex items-center justify-end gap-2"
+              >
+                {hasTodos && (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setActiveFilter(activeFilter === "todos" ? null : "todos")}
+                    className={cn(
+                      "h-7 px-3 rounded-full text-xs border transition-colors cursor-pointer",
+                      activeFilter === "todos"
+                        ? "bg-[#2c2624] border-[#3a3432] text-[#e8e8e8]"
+                        : "border-[#2c2624] text-[#777] hover:text-[#cfcfcf] hover:border-[#3a3432]"
+                    )}
+                  >
+                    Todos
+                  </motion.button>
+                )}
+                {hasLinks && (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setActiveFilter(activeFilter === "links" ? null : "links")}
+                    className={cn(
+                      "h-7 px-3 rounded-full text-xs border transition-colors cursor-pointer",
+                      activeFilter === "links"
+                        ? "bg-[#2c2624] border-[#3a3432] text-[#e8e8e8]"
+                        : "border-[#2c2624] text-[#777] hover:text-[#cfcfcf] hover:border-[#3a3432]"
+                    )}
+                  >
+                    Links
+                  </motion.button>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 pt-4 md:pt-12 pb-24 md:pb-8 px-4 md:px-0 min-h-0 scrollbar-hidden max-w-5xl mr-auto">
+        {/* Mobile Filters */}
+        <AnimatePresence>
           {(hasTodos || hasLinks) && (
-            <div className="mt-3 flex items-center justify-end gap-2">
+            <motion.div
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={transition}
+              className="md:hidden flex items-center gap-2 mb-4"
+            >
               {hasTodos && (
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => setActiveFilter(activeFilter === "todos" ? null : "todos")}
                   className={cn(
                     "h-7 px-3 rounded-full text-xs border transition-colors cursor-pointer",
@@ -348,10 +427,11 @@ export function TodoEditor({ className }: TodoEditorProps) {
                   )}
                 >
                   Todos
-                </button>
+                </motion.button>
               )}
               {hasLinks && (
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => setActiveFilter(activeFilter === "links" ? null : "links")}
                   className={cn(
                     "h-7 px-3 rounded-full text-xs border transition-colors cursor-pointer",
@@ -361,156 +441,176 @@ export function TodoEditor({ className }: TodoEditorProps) {
                   )}
                 >
                   Links
-                </button>
+                </motion.button>
               )}
-            </div>
+            </motion.div>
           )}
-        </div>
-      </div>
+        </AnimatePresence>
 
-      {/* Main Content */}
-      <div className="flex-1 pt-4 md:pt-12 pb-24 md:pb-8 px-4 md:px-0 min-h-0 scrollbar-hidden max-w-5xl mr-auto">
-        {/* Mobile Filters */}
-        {(hasTodos || hasLinks) && (
-          <div className="md:hidden flex items-center gap-2 mb-4">
-            {hasTodos && (
-              <button
-                onClick={() => setActiveFilter(activeFilter === "todos" ? null : "todos")}
-                className={cn(
-                  "h-7 px-3 rounded-full text-xs border transition-colors cursor-pointer",
-                  activeFilter === "todos"
-                    ? "bg-[#2c2624] border-[#3a3432] text-[#e8e8e8]"
-                    : "border-[#2c2624] text-[#777] hover:text-[#cfcfcf] hover:border-[#3a3432]"
-                )}
+        <AnimatePresence mode="wait">
+          {activeFilter === "links" ? (
+            <motion.div
+              key="links"
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={fadeSlideUp}
+              transition={transition}
+              className="space-y-4"
+            >
+              <motion.div
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+                className="grid gap-3 grid-cols-1 sm:grid-cols-2"
               >
-                Todos
-              </button>
-            )}
-            {hasLinks && (
-              <button
-                onClick={() => setActiveFilter(activeFilter === "links" ? null : "links")}
-                className={cn(
-                  "h-7 px-3 rounded-full text-xs border transition-colors cursor-pointer",
-                  activeFilter === "links"
-                    ? "bg-[#2c2624] border-[#3a3432] text-[#e8e8e8]"
-                    : "border-[#2c2624] text-[#777] hover:text-[#cfcfcf] hover:border-[#3a3432]"
-                )}
-              >
-                Links
-              </button>
-            )}
-          </div>
-        )}
-
-        {activeFilter === "links" ? (
-          <div className="space-y-4">
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
-              {collectedLinks.map((link) => (
-                <a
-                  key={link.url}
-                  href={link.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block rounded-lg border border-[#2f2927] bg-[#201b19] p-4 transition-colors hover:border-[#3a3432] hover:bg-[#27211f]"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-md bg-[#2a2422] border border-[#2f2927] flex items-center justify-center shrink-0 overflow-hidden">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={`https://icons.duckduckgo.com/ip3/${link.domain}.ico`}
-                          alt=""
-                          className="h-5 w-5"
-                          loading="lazy"
-                          onError={(e) => {
-                            e.currentTarget.src = `https://www.google.com/s2/favicons?domain=${link.domain}&sz=64`
-                          }}
-                        />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm text-[#e8e8e8] wrap-break-word">
-                          {link.domain}
+                {collectedLinks.map((link) => (
+                  <motion.a
+                    key={link.url}
+                    variants={listItem}
+                    transition={transition}
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block rounded-lg border border-[#2f2927] bg-[#201b19] p-4 transition-colors hover:border-[#3a3432] hover:bg-[#27211f]"
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex items-start gap-3">
+                        <div className="h-8 w-8 rounded-md bg-[#2a2422] border border-[#2f2927] flex items-center justify-center shrink-0 overflow-hidden">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={`https://icons.duckduckgo.com/ip3/${link.domain}.ico`}
+                            alt=""
+                            className="h-5 w-5"
+                            loading="lazy"
+                            onError={(e) => {
+                              e.currentTarget.src = `https://www.google.com/s2/favicons?domain=${link.domain}&sz=64`
+                            }}
+                          />
                         </div>
-                        <div className="text-xs text-[#8f8f8f] wrap-break-word mt-1 line-clamp-2">
-                          {link.url}
+                        <div className="min-w-0">
+                          <div className="text-sm text-[#e8e8e8] wrap-break-word">
+                            {link.domain}
+                          </div>
+                          <div className="text-xs text-[#8f8f8f] wrap-break-word mt-1 line-clamp-2">
+                            {link.url}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </a>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <EditorContent
-            editor={editor}
-            className={cn("h-full scrollbar-hidden pb-20", activeFilter === "todos" && "filter-todos-only")}
-          />
-        )}
+                  </motion.a>
+                ))}
+              </motion.div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="editor"
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              variants={fadeSlideUp}
+              transition={transition}
+            >
+              <EditorContent
+                editor={editor}
+                className={cn("h-full scrollbar-hidden pb-20", activeFilter === "todos" && "filter-todos-only")}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Mobile Action Buttons */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#1D1715] border-t border-[#2f2927] p-3 z-20">
-        {showMobileActions ? (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[#888]">Add Timer</span>
-              <div className="flex gap-2">
-                {[5, 10, 15, 25, 60].map((mins) => (
-                  <button
-                    key={mins}
-                    onClick={() => addTimer(mins)}
-                    className="px-3 py-1.5 rounded-lg bg-[#2a2422] border border-[#3a3432] text-xs text-[#e8e8e8] hover:bg-[#3a3432] cursor-pointer"
-                  >
-                    {mins >= 60 ? `${mins / 60}h` : `${mins}m`}
-                  </button>
-                ))}
+        <AnimatePresence mode="wait">
+          {showMobileActions ? (
+            <motion.div
+              key="actions-expanded"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={transition}
+              className="space-y-3"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-[#888]">Add Timer</span>
+                <div className="flex gap-2">
+                  {[5, 10, 15, 25, 60].map((mins, i) => (
+                    <motion.button
+                      key={mins}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ ...transition, delay: i * 0.03 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => addTimer(mins)}
+                      className="px-3 py-1.5 rounded-lg bg-[#2a2422] border border-[#3a3432] text-xs text-[#e8e8e8] hover:bg-[#3a3432] cursor-pointer"
+                    >
+                      {mins >= 60 ? `${mins / 60}h` : `${mins}m`}
+                    </motion.button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[#888]">Add Note</span>
-              <div className="flex gap-2">
-                {(["yellow", "pink", "blue", "green", "purple"] as const).map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => addStickyNote(color)}
-                    className="w-7 h-7 rounded-lg border border-[#3a3432] cursor-pointer"
-                    style={{
-                      background: color === "yellow" ? "#facc15" 
-                        : color === "pink" ? "#f472b6"
-                        : color === "blue" ? "#60a5fa"
-                        : color === "green" ? "#4ade80"
-                        : "#c084fc"
-                    }}
-                  />
-                ))}
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-[#888]">Add Note</span>
+                <div className="flex gap-2">
+                  {(["yellow", "pink", "blue", "green", "purple"] as const).map((color, i) => (
+                    <motion.button
+                      key={color}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ ...transition, delay: i * 0.03 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => addStickyNote(color)}
+                      className="w-7 h-7 rounded-lg border border-[#3a3432] cursor-pointer"
+                      style={{
+                        background: color === "yellow" ? "#facc15" 
+                          : color === "pink" ? "#f472b6"
+                          : color === "blue" ? "#60a5fa"
+                          : color === "green" ? "#4ade80"
+                          : "#c084fc"
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-            <button
-              onClick={() => setShowMobileActions(false)}
-              className="w-full py-2 text-xs text-[#888] hover:text-white cursor-pointer"
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowMobileActions(false)}
+                className="w-full py-2 text-xs text-[#888] hover:text-white cursor-pointer"
+              >
+                Cancel
+              </motion.button>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="actions-collapsed"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={transition}
+              className="flex gap-3"
             >
-              Cancel
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-3">
-            <button
-              onClick={() => setShowMobileActions(true)}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#2a2422] border border-[#3a3432] text-sm text-[#e8e8e8] hover:bg-[#3a3432] cursor-pointer"
-            >
-              <Timer size={16} />
-              Timer
-            </button>
-            <button
-              onClick={() => setShowMobileActions(true)}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#2a2422] border border-[#3a3432] text-sm text-[#e8e8e8] hover:bg-[#3a3432] cursor-pointer"
-            >
-              <StickyNoteIcon size={16} />
-              Note
-            </button>
-          </div>
-        )}
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setShowMobileActions(true)}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#2a2422] border border-[#3a3432] text-sm text-[#e8e8e8] hover:bg-[#3a3432] cursor-pointer"
+              >
+                <Timer size={16} />
+                Timer
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setShowMobileActions(true)}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[#2a2422] border border-[#3a3432] text-sm text-[#e8e8e8] hover:bg-[#3a3432] cursor-pointer"
+              >
+                <StickyNoteIcon size={16} />
+                Note
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <style jsx global>{`
@@ -518,14 +618,26 @@ export function TodoEditor({ className }: TodoEditorProps) {
           list-style: none;
           padding: 0;
           margin: 0;
+          gap: 0.5rem;
         }
         
         .todo-item {
           display: flex;
           align-items: flex-start;
           gap: 0.75rem;
-          margin: 0.5rem 0;
-          padding: 0.25rem 0;
+          padding: 0.15rem 0;
+          animation: todoSlideIn 0.2s ease-out;
+        }
+        
+        @keyframes todoSlideIn {
+          from {
+            opacity: 0;
+            transform: translateX(-8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
         }
         
         .todo-item > label {
@@ -544,17 +656,29 @@ export function TodoEditor({ className }: TodoEditorProps) {
           border-radius: 0.375rem;
           background: transparent;
           cursor: pointer;
-          transition: all 0.15s ease;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
         }
         
         .todo-item > label input[type="checkbox"]:hover {
           border-color: #666;
+          transform: scale(1.05);
+        }
+        
+        .todo-item > label input[type="checkbox"]:active {
+          transform: scale(0.95);
         }
         
         .todo-item > label input[type="checkbox"]:checked {
           background: #444;
           border-color: #444;
+          animation: checkboxPop 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        @keyframes checkboxPop {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.15); }
+          100% { transform: scale(1); }
         }
         
         .todo-item > label input[type="checkbox"]:checked::after {
@@ -562,10 +686,22 @@ export function TodoEditor({ className }: TodoEditorProps) {
           position: absolute;
           top: 50%;
           left: 50%;
-          transform: translate(-50%, -50%);
+          transform: translate(-50%, -50%) scale(1);
           color: #e8e8e8;
           font-size: 0.75rem;
           font-weight: bold;
+          animation: checkmarkIn 0.15s ease-out;
+        }
+        
+        @keyframes checkmarkIn {
+          from {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.5);
+          }
+          to {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+          }
         }
         
         .todo-item > div {
@@ -575,6 +711,10 @@ export function TodoEditor({ className }: TodoEditorProps) {
         
         .todo-item > div p {
           margin: 0;
+        }
+        
+        .todo-item > div {
+          transition: opacity 0.2s ease, text-decoration-color 0.2s ease;
         }
         
         .todo-item[data-checked="true"] > div {
