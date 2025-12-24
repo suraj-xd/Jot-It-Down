@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Jot It Down
+
+https://video.twimg.com/amplify_video/1998358530886430720/vid/avc1/1492x930/JzaxV-zfRX51ag2v.mp4
+
+No account. No title. All in your browser. Safety first. Just keep the ideas flowing.
+
+A simple todo manager to organize your tasks.
+
+## About
+
+Local first — all your todos and data is managed on your system. Your information stays private and secure.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to start using the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Shortcuts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Keys | Action |
+|------|--------|
+| `⌘` `←` | Previous day |
+| `⌘` `→` | Next day |
+| `⌘` `/` | Toggle this guide |
+| `Tab` | Indent task |
+| `⇧` `Tab` | Outdent task |
 
-## Learn More
+## Create Tasks
 
-To learn more about Next.js, take a look at the following resources:
+- `-` Create a task
+- `[]` Create a task (alt)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Timers
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Type and press Enter:
 
-## Deploy on Vercel
+- `> 5 mins timer` → 5 minute timer
+- `> 1 hour timer` → 1 hour timer
+- `> 30 secs timer` → 30 second timer
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Sticky Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Type and press Enter:
+
+- `> sticky: text` → Yellow note
+- `> note: text` → Yellow note (alt)
+- `> sticky: [pink] text` → Colored note
+
+**Colors:** yellow, pink, blue, green, purple
+
+## Other Features
+
+- Paste images directly
+- URLs auto-link
+- Filter by Todos or Links
+- Hover to delete timers/notes
+
+---
+
+Made with ❤️ and ☕ by [@surajgaud](https://twitter.com/surajgaud)
